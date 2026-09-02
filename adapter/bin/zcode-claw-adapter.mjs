@@ -50,9 +50,21 @@ function cliFail(message, code = 2) {
   process.exit(code);
 }
 
+const PKG_NAME = '@bwndlct/zcode-claw-adapter';
+
 async function readVersion() {
-  const pkg = JSON.parse(await readFile(join(HERE, '..', '..', 'package.json'), 'utf8'));
-  return pkg.version;
+  // Local runtime copy: adapter/bin -> adapter/package.json (written by
+  // install-local). npm/repo layout: adapter/bin -> <root>/package.json.
+  // The runtime copy's PARENT may hold an unrelated package.json (the host
+  // Claw runtime dir), so candidates are name-checked before use.
+  const candidates = [join(HERE, '..', 'package.json'), join(HERE, '..', '..', 'package.json')];
+  for (const file of candidates) {
+    try {
+      const pkg = JSON.parse(await readFile(file, 'utf8'));
+      if (pkg.name === PKG_NAME && pkg.version) return pkg.version;
+    } catch { /* try the next layout */ }
+  }
+  return 'unknown';
 }
 
 /** Find an executable `zcode` candidate on PATH (first writable-match wins). */

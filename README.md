@@ -71,27 +71,23 @@ Run `zcode-claw-adapter --help` for the full list.
 
 ### Claw configuration
 
-With Claw >= 6.3.0 you can reference the adapter as a community engine preset;
-the preset lives upstream in `Enderfga/claw-orchestrator`
-(`configs/engines/zcode.json`). For per-task control you can also inline a
-custom engine:
+With Claw >= 6.3.0, presets in `configs/engines/` can be referenced by id, so
+once the upstream community preset ships you can select the engine with:
 
 ```json
 {
-  "customEngine": {
-    "engine": {
-      "name": "zcode",
-      "bin": "zcode-claw-adapter",
-      "binEnv": "ZCODE_CLAW_ADAPTER_BIN",
-      "persistent": true,
-      "args": {}
-    }
-  }
+  "engine": "custom",
+  "customEngine": "zcode"
 }
 ```
 
-Claw flags that reach the engine are mapped by the adapter's own argument
-parser; unmapped flags fail fast with a non-sensitive error message.
+The preset (`Enderfga/claw-orchestrator` → `configs/engines/zcode.json`) points
+`bin` at the `zcode-claw-adapter` command and honors `ZCODE_CLAW_ADAPTER_BIN`
+for non-standard install locations. Until the preset ships (or if you prefer
+not to depend on it), pass an inline `CustomEngineConfig` instead — see Claw's
+`skills/references/multi-engine.md` for the inline shape. Per-task overrides
+(workspace, state dir, concurrency, `--no-desktop-refresh`) go through the
+custom-engine argument passthrough.
 
 ## Troubleshooting
 
