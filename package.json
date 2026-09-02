@@ -34,7 +34,7 @@
   },
   "scripts": {
     "check": "node --check adapter/bin/zcode-claw-adapter.mjs && node --check adapter/bin/zcode-app-server.mjs && node --check adapter/lib/zcode-client.mjs && node --check adapter/lib/state.mjs && node --check scripts/install-local.mjs",
-    "test": "node --test test/",
+    "test": "node --test --test-timeout=60000 --test-force-exit \"test/*.test.mjs\"",
     "install:local": "node scripts/install-local.mjs"
   }
 }
