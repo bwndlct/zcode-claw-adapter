@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
+import { readFile } from 'node:fs/promises';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -19,7 +20,8 @@ const env = {
 
 test('CLI --version prints package version', async () => {
   const { stdout } = await run('node', [CLI, '--version'], { env });
-  assert.match(stdout.trim(), /^\d+\.\d+\.\d+$/);
+  const pkg = JSON.parse(await readFile(join(REPO, 'package.json'), 'utf8'));
+  assert.equal(stdout.trim(), pkg.version);
 });
 
 test('CLI --help shows wrapper and engine usage', async () => {
