@@ -1,0 +1,10 @@
+{
+  "name": "zcode-claw-adapter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "check": "node --check adapter/bin/zcode-app-server.mjs && node --check adapter/lib/zcode-client.mjs && node --check adapter/lib/state.mjs && node --check scripts/install-local.mjs",
+    "install:local": "node scripts/install-local.mjs"
+  }
+}
