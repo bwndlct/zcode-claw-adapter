@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 
-import { chmod, copyFile, mkdir, rename, unlink } from 'node:fs/promises';
+import { chmod, copyFile, mkdir, rename, unlink, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
+import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -10,6 +11,7 @@ const sourceRoot = join(repoRoot, 'adapter');
 const targetRoot = join(homedir(), '.local', 'share', 'zcode-claw', 'adapter');
 
 const files = [
+  { path: 'bin/zcode-claw-adapter.mjs', mode: 0o755 },
   { path: 'bin/zcode-app-server.mjs', mode: 0o755 },
   { path: 'bin/zcode-engine-launcher.sh', mode: 0o755 },
   { path: 'lib/state.mjs', mode: 0o644 },
@@ -34,6 +36,13 @@ async function installFile(file) {
 
 async function main() {
   for (const file of files) await installFile(file);
+  // Minimal package.json so the runtime copy's CLI entry can answer --version.
+  const pkg = JSON.parse(await readFile(join(repoRoot, 'package.json'), 'utf8'));
+  await mkdir(targetRoot, { recursive: true });
+  await writeFile(
+    join(targetRoot, 'package.json'),
+    JSON.stringify({ name: pkg.name, version: pkg.version }, null, 2) + '\n',
+  );
   process.stdout.write(`Installed ZCode Claw adapter to ${targetRoot}\n`);
 }
 

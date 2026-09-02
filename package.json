@@ -1,10 +1,40 @@
 {
-  "name": "zcode-claw-adapter",
+  "name": "@bwndlct/zcode-claw-adapter",
   "version": "0.1.0",
-  "private": true,
+  "description": "Claw Orchestrator custom engine that runs ZCode app-server as the coding session owner, translating Claw stream-json to the ZCode Protocol.",
   "type": "module",
+  "license": "MIT",
+  "author": "bwndlct",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bwndlct/zcode-claw-adapter.git"
+  },
+  "homepage": "https://github.com/bwndlct/zcode-claw-adapter#readme",
+  "bugs": "https://github.com/bwndlct/zcode-claw-adapter/issues",
+  "keywords": [
+    "claw",
+    "claw-orchestrator",
+    "zcode",
+    "app-server",
+    "adapter",
+    "custom-engine",
+    "stream-json"
+  ],
+  "bin": {
+    "zcode-claw-adapter": "adapter/bin/zcode-claw-adapter.mjs"
+  },
+  "files": [
+    "adapter/bin",
+    "adapter/lib",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
-    "check": "node --check adapter/bin/zcode-app-server.mjs && node --check adapter/lib/zcode-client.mjs && node --check adapter/lib/state.mjs && node --check scripts/install-local.mjs",
+    "check": "node --check adapter/bin/zcode-claw-adapter.mjs && node --check adapter/bin/zcode-app-server.mjs && node --check adapter/lib/zcode-client.mjs && node --check adapter/lib/state.mjs && node --check scripts/install-local.mjs",
+    "test": "node --test test/",
     "install:local": "node scripts/install-local.mjs"
   }
 }
