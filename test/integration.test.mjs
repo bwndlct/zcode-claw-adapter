@@ -19,7 +19,7 @@ const FAKE_SERVER = join(REPO, 'test', 'fixtures', 'fake-zcode-server.mjs');
  * with closeOnError, after an error event). stdin is then closed — the CLI
  * is a persistent process and otherwise never exits.
  */
-function runCli({ lines, env = {}, args = [], closeOnError = false }) {
+function runCli({ lines, env = {}, args = [], closeOnError = false, advanceOnSystem = false }) {
   return new Promise((resolveTest, rejectTest) => {
     const child = spawn(process.execPath, [
       CLI,
@@ -43,7 +43,7 @@ function runCli({ lines, env = {}, args = [], closeOnError = false }) {
     const sendNext = () => {
       const line = queue.shift();
       if (line === undefined) child.stdin.end();
-      else child.stdin.write(JSON.stringify(line) + '\n');
+      else child.stdin.write((typeof line === 'string' ? line : JSON.stringify(line)) + '\n');
     };
     const rl = createInterface({ input: child.stdout, crlfDelay: Infinity });
     rl.on('line', (line) => {
@@ -51,7 +51,11 @@ function runCli({ lines, env = {}, args = [], closeOnError = false }) {
       let msg;
       try { msg = JSON.parse(line); } catch { msg = { unparsed: line }; }
       messages.push(msg);
-      if (msg.type === 'result' || (closeOnError && msg.type === 'error')) sendNext();
+      if (
+        msg.type === 'result'
+        || (closeOnError && msg.type === 'error')
+        || (advanceOnSystem && msg.type === 'system' && msg.subtype === 'zcode_event')
+      ) sendNext();
     });
     child.stderr.on('data', (d) => { stderr += String(d); });
     child.on('error', rejectTest);
@@ -197,4 +201,44 @@ test('integration: workspace/model/mode flags reach the child as protocol calls'
   const init = messages.find((m) => m.type === 'system' && m.subtype === 'init');
   assert.equal(init.mode, 'plan');
   assert.equal(init.max_tool_concurrency, 3);
+});
+
+test('integration: malformed and unsupported Claw input is reported without crashing', async (t) => {
+  const stateDir = await mkdtemp(join(tmpdir(), 'zca-it-'));
+  t.after(() => rm(stateDir, { recursive: true, force: true }));
+  const { messages, code } = await runCli({
+    env: { ZCODE_CLAW_STATE_DIR: stateDir },
+    args: ['--name', 'it-bad-input', '--no-desktop-refresh'],
+    advanceOnSystem: true,
+    lines: ['{not-json', { type: 'assistant', message: { content: [] } }],
+  });
+  assert.equal(code, 0);
+  const summaries = messages
+    .filter((m) => m.type === 'system' && m.subtype === 'zcode_event')
+    .map((m) => m.summary);
+  assert.ok(summaries.some((s) => /unparseable claw input line/.test(s)));
+  assert.ok(summaries.some((s) => /unsupported claw message type assistant/.test(s)));
+});
+
+test('integration: unknown ZCode notifications and session events are forward compatible', async (t) => {
+  const stateDir = await mkdtemp(join(tmpdir(), 'zca-it-'));
+  const eventLog = join(stateDir, 'events.log');
+  t.after(() => rm(stateDir, { recursive: true, force: true }));
+  const { messages, code } = await runCli({
+    env: { ZCODE_CLAW_STATE_DIR: stateDir, FAKE_UNKNOWN_EVENTS: '1' },
+    args: [
+      '--name', 'it-unknown-events', '--no-desktop-refresh',
+      '--event-log', eventLog, '--turn-timeout-ms', '15000',
+    ],
+    lines: [user('continue despite future protocol events')],
+  });
+  assert.equal(code, 0);
+  assert.equal(findResult(messages).at(0)?.subtype, 'success');
+  const log = await readFile(eventLog, 'utf8');
+  assert.match(log, /NOTIF future\/notification/);
+  assert.match(log, /future\.session-event/);
+  const state = JSON.parse(await readFile(join(stateDir, 'sessions.json'), 'utf8'));
+  const events = state.sessions['it-unknown-events'].events;
+  assert.ok(events.some((event) => event.kind === 'unknown-notification'));
+  assert.ok(events.some((event) => event.kind === 'unknown-session-event'));
 });

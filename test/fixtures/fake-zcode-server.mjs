@@ -7,6 +7,7 @@
 //   FAKE_MODE=deny      answer nothing; used for permission-request scenarios
 //   FAKE_DIE_ON_SEND=1  exit(1) when session/send arrives (child-crash test)
 //   FAKE_DELAY_MS=T     wait T ms before streaming the reply
+//   FAKE_UNKNOWN_EVENTS=1 emit unknown protocol extensions before a normal reply
 
 import { createInterface } from 'node:readline';
 
@@ -26,6 +27,13 @@ function handleSend(params) {
 
   const delay = Number(process.env.FAKE_DELAY_MS ?? 50);
   const stream = () => setTimeout(() => {
+    if (process.env.FAKE_UNKNOWN_EVENTS === '1') {
+      notify('future/notification', { sessionId: params.sessionId });
+      notify('session/events', {
+        sessionId: params.sessionId,
+        events: [{ type: 'future.session-event', payload: { version: 2 } }],
+      });
+    }
     let reply;
     if (asks) reply = `the number was ${memory.get(params.sessionId) ?? 'unknown'}`;
     else reply = m ? 'OK' : `echo: ${text.slice(0, 200)}`;
